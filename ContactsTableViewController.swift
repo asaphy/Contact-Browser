@@ -87,5 +87,34 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
         cell.detailTextLabel!.text = numberArray.joined(separator: ",")
         return cell
     }
+    
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let contact = contactModel.contacts[indexPath.row]
+        var numberArray = [String]()
+        for number in contact.phoneNumbers {
+            let phoneNumber = number.value
+            numberArray.append(phoneNumber.stringValue)
+        }
+        let alertController = UIAlertController(title: "Call Confirmation", message: "Would you like to call \(contact.givenName) at number: \(numberArray.joined(separator: ","))?", preferredStyle: .alert)
+        
+        let actionYes = UIAlertAction(title: "Yes", style: .default) { (action:UIAlertAction) in
+            if let phoneCallURL = NSURL(string: "telprompt://\(contact.phoneNumbers)") {
+                let application = UIApplication.shared
+                if application.canOpenURL(phoneCallURL as URL) {
+                    application.open(phoneCallURL as URL)
+                }
+                else{
+                    print("failed")
+                }
+            }
+        }
+        
+        let actionCancel = UIAlertAction(title: "Cancel", style: .cancel) { (action:UIAlertAction) in
+        }
+        
+        alertController.addAction(actionYes)
+        alertController.addAction(actionCancel)
+        self.present(alertController, animated: true, completion:nil)
+    }
 
 }
