@@ -15,7 +15,6 @@
 		8D31E2551D88485000AF5D7D /* Contact_BrowserUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D31E2541D88485000AF5D7D /* Contact_BrowserUITests.swift */; };
 		8D31E2631D884B0300AF5D7D /* ContactsTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D31E2621D884B0300AF5D7D /* ContactsTableViewController.swift */; };
 		8DE815EA1D8889CB00AF43A6 /* ContactsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DE815E91D8889CB00AF43A6 /* ContactsViewModel.swift */; };
-		8DE815EC1D888BC500AF43A6 /* ContactsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DE815EB1D888BC500AF43A6 /* ContactsModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,7 +49,6 @@
 		8D31E2561D88485000AF5D7D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8D31E2621D884B0300AF5D7D /* ContactsTableViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ContactsTableViewController.swift; path = ../ContactsTableViewController.swift; sourceTree = "<group>"; };
 		8DE815E91D8889CB00AF43A6 /* ContactsViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContactsViewModel.swift; sourceTree = "<group>"; };
-		8DE815EB1D888BC500AF43A6 /* ContactsModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContactsModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -103,7 +101,6 @@
 			children = (
 				8D31E2621D884B0300AF5D7D /* ContactsTableViewController.swift */,
 				8DE815E91D8889CB00AF43A6 /* ContactsViewModel.swift */,
-				8DE815EB1D888BC500AF43A6 /* ContactsModel.swift */,
 				8D31E2341D88484F00AF5D7D /* AppDelegate.swift */,
 				8D31E2381D88484F00AF5D7D /* Main.storyboard */,
 				8D31E23B1D88484F00AF5D7D /* Assets.xcassets */,
@@ -267,7 +264,6 @@
 			files = (
 				8D31E2631D884B0300AF5D7D /* ContactsTableViewController.swift in Sources */,
 				8DE815EA1D8889CB00AF43A6 /* ContactsViewModel.swift in Sources */,
-				8DE815EC1D888BC500AF43A6 /* ContactsModel.swift in Sources */,
 				8D31E2351D88484F00AF5D7D /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

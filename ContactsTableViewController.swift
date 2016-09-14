@@ -11,9 +11,13 @@ import Contacts
 import ContactsUI
 
 class ContactsTableViewController: UITableViewController, UISearchResultsUpdating, UISearchBarDelegate {
+    
+    let contactModel = ContactsViewModel()
+    var contactDict: [String:[CNContact]] = [:]
+    var sortedKeys: [String] = []
     var searchController: UISearchController!
 
-    func configureSearchController() {
+    private func configureSearchController() {
         // Initialize and perform a minimum configuration to the search controller.
         searchController = UISearchController(searchResultsController: nil)
         searchController.searchResultsUpdater = self
@@ -26,57 +30,74 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
         self.tableView!.tableHeaderView = searchController.searchBar
     }
     
-    let contactModel = Contacts()
-
-    public func updateSearchResults(for searchController: UISearchController) {
+    internal func updateSearchResults(for searchController: UISearchController) {
         contactModel.filterContentForSearchText(searchText: searchController.searchBar.text!)
         tableView.reloadData()
 
     }
     
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        configureSearchController()
-
+    private func setTitle(){
+        self.title = "Contacts Browser"
+    }
+    
+    private func getContacts(){
         DispatchQueue.main.async(execute: { () -> Void in
             self.contactModel.contacts = self.contactModel.findContacts()
             DispatchQueue.main.async(execute: { () -> Void in
+                self.contactDict = self.contactModel.getIndexLetters(contacts: self.contactModel.contacts)
+                self.sortedKeys = Array(self.contactDict.keys).sorted()
                 self.tableView!.reloadData()
             })
         })
-        
-        self.title = "Contacts Browser"
-        self.tableView.delegate = self
-        self.tableView.dataSource = self
-
     }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        configureSearchController()
+        setTitle()
+        getContacts()
     }
 
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
-        return 1
+        return sortedKeys.count
+    }
+    
+    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        return sortedKeys[section]
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        //if searching and search text is not ""
         if searchController.isActive && searchController.searchBar.text != "" {
             return contactModel.filteredContacts.count
         }
-        return contactModel.contacts.count
+        let sectionTitle = sortedKeys[section]
+        return contactDict[sectionTitle]!.count;
     }
     
+    override func tableView(_ tableView: UITableView, sectionForSectionIndexTitle title: String, at index: Int)
+        -> Int {
+            return index
+    }
+    
+    override func sectionIndexTitles(for tableView: UITableView) -> [String]? {
+        return sortedKeys
+    }
+
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "ContactCell", for: indexPath)
         let contact: CNContact
+        //if searching and search text is not ""
         if searchController.isActive && searchController.searchBar.text != "" {
             contact = contactModel.filteredContacts[indexPath.row]
         } else {
-            contact = contactModel.contacts[indexPath.row]
+            let sectionTitle = sortedKeys[indexPath.section]
+            let sectionContacts = contactDict[sectionTitle]!
+            contact = sectionContacts[indexPath.row]
         }
+        
         cell.textLabel!.text = "\(contact.givenName) \(contact.familyName)"
         cell.detailTextLabel!.text = "\(contact.phoneNumbers)"
         var numberArray = [String]()
@@ -84,6 +105,7 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
             let phoneNumber = number.value
             numberArray.append(phoneNumber.stringValue)
         }
+        
         cell.detailTextLabel!.text = numberArray.joined(separator: ",")
         return cell
     }
