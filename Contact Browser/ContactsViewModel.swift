@@ -60,6 +60,15 @@ class ContactsViewModel {
     
     //filters contacts
     func filterContentForSearchText(searchText: String, scope: String = "All") {
+        contacts = contacts.sorted(by: {
+            if $0.givenName != $1.givenName {
+                return $0.givenName < $1.givenName
+            }
+            else {
+                //last names are the same, break ties by first name
+                return $0.familyName < $1.familyName
+            }
+        })
         filteredContacts = contacts.filter { contact in
             var numberArray = [String]()
             for number in contact.phoneNumbers {

@@ -16,9 +16,12 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
     var contactDict: [String:[CNContact]] = [:]
     var sortedKeys: [String] = []
     var sortedValues: [CNContact] = []
+    var sortedDict: [String:[[CNContact]]] = [:]
+
 
     var searchController: UISearchController!
-    private func configureSearchController() {
+    private func configureSearchController()
+    {
         // Initialize and perform a minimum configuration to the search controller.
         searchController = UISearchController(searchResultsController: nil)
         searchController.searchResultsUpdater = self
@@ -47,7 +50,28 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
             DispatchQueue.main.async(execute: { () -> Void in
                 self.contactDict = self.contactModel.getIndexLetters(contacts: self.contactModel.contacts)
                 self.sortedKeys = Array(self.contactDict.keys).sorted()
-                //self.sortedValues = self.contactModel.contacts.sorted(by: { $0.givenName < $1.givenName })
+                self.sortedValues = self.contactModel.contacts.sorted(by: {
+                    if $0.givenName != $1.givenName {
+                        return $0.givenName < $1.givenName
+                    }
+                    else {
+                        //last names are the same, break ties by first name
+                        return $0.familyName < $1.familyName
+                    }
+                })
+                //TODO: map dictionary keys to values based on first letter
+                for contact in self.sortedValues{
+                    if contact.givenName != "" {
+                        let firstLetter = String(contact.givenName[contact.givenName.startIndex])
+                        if self.sortedDict[firstLetter] == nil{
+                            self.sortedDict[firstLetter] = [[contact]]
+                        }
+                        else{
+                            self.sortedDict[firstLetter]![0].append(contact)
+                        }
+                    }
+                    
+                }
                 self.tableView!.reloadData()
             })
         })
@@ -105,7 +129,7 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
             contact = contactModel.filteredContacts[indexPath.row]
         } else {
             let sectionTitle = sortedKeys[indexPath.section]
-            let sectionContacts = contactDict[sectionTitle]!
+            let sectionContacts = sortedDict[sectionTitle]![0]
             contact = sectionContacts[indexPath.row]
         }
         
@@ -119,13 +143,13 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let sectionTitle = sortedKeys[indexPath.section]
-        let sectionContacts = contactDict[sectionTitle]!
+        let sectionContacts = sortedDict[sectionTitle]![0]
         let contact: CNContact
 
         if searchController.isActive && searchController.searchBar.text != "" {
             contact = contactModel.filteredContacts[indexPath.row]
         } else {
-            let contact = sectionContacts[indexPath.row]
+            contact = sectionContacts[indexPath.row]
         }
         //get first number
         let numberArray = contact.phoneNumbers[0].value.stringValue
