@@ -61,10 +61,16 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
+        if searchController.isActive && searchController.searchBar.text != "" {
+            return 1
+        }
         return sortedKeys.count
     }
     
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        if searchController.isActive && searchController.searchBar.text != "" {
+            return ""
+        }
         return sortedKeys[section]
     }
 
@@ -83,6 +89,9 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
     }
     
     override func sectionIndexTitles(for tableView: UITableView) -> [String]? {
+        if searchController.isActive && searchController.searchBar.text != "" {
+            return []
+        }
         return sortedKeys
     }
 
@@ -113,6 +122,7 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let contact = contactModel.contacts[indexPath.row]
         var numberArray = [String]()
+        print("row selected")
         for number in contact.phoneNumbers {
             let phoneNumber = number.value
             numberArray.append(phoneNumber.stringValue)
@@ -136,7 +146,11 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
         
         alertController.addAction(actionYes)
         alertController.addAction(actionCancel)
-        self.present(alertController, animated: true, completion:nil)
+        if searchController.isActive && searchController.searchBar.text != "" {
+            searchController.present(alertController, animated: true, completion:nil)
+        } else {
+            self.present(alertController, animated: true, completion:nil)
+        }
     }
 
 }
