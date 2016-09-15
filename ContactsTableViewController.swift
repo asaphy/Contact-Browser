@@ -15,8 +15,9 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
     let contactModel = ContactsViewModel()
     var contactDict: [String:[CNContact]] = [:]
     var sortedKeys: [String] = []
-    var searchController: UISearchController!
+    var sortedValues: [CNContact] = []
 
+    var searchController: UISearchController!
     private func configureSearchController() {
         // Initialize and perform a minimum configuration to the search controller.
         searchController = UISearchController(searchResultsController: nil)
@@ -46,6 +47,7 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
             DispatchQueue.main.async(execute: { () -> Void in
                 self.contactDict = self.contactModel.getIndexLetters(contacts: self.contactModel.contacts)
                 self.sortedKeys = Array(self.contactDict.keys).sorted()
+                //self.sortedValues = self.contactModel.contacts.sorted(by: { $0.givenName < $1.givenName })
                 self.tableView!.reloadData()
             })
         })
@@ -108,29 +110,31 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
         }
         
         cell.textLabel!.text = "\(contact.givenName) \(contact.familyName)"
-        cell.detailTextLabel!.text = "\(contact.phoneNumbers)"
-        var numberArray = [String]()
-        for number in contact.phoneNumbers {
-            let phoneNumber = number.value
-            numberArray.append(phoneNumber.stringValue)
-        }
+        //get first number
+        let numberArray = contact.phoneNumbers[0].value.stringValue
         
-        cell.detailTextLabel!.text = numberArray.joined(separator: ",")
+        cell.detailTextLabel!.text = contactModel.formatPhoneNumber(phoneNum: numberArray)
         return cell
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let contact = contactModel.contacts[indexPath.row]
-        var numberArray = [String]()
-        print("row selected")
-        for number in contact.phoneNumbers {
-            let phoneNumber = number.value
-            numberArray.append(phoneNumber.stringValue)
+        let sectionTitle = sortedKeys[indexPath.section]
+        let sectionContacts = contactDict[sectionTitle]!
+        let contact: CNContact
+
+        if searchController.isActive && searchController.searchBar.text != "" {
+            contact = contactModel.filteredContacts[indexPath.row]
+        } else {
+            let contact = sectionContacts[indexPath.row]
         }
-        let alertController = UIAlertController(title: "Call Confirmation", message: "Would you like to call \(contact.givenName) at number: \(numberArray.joined(separator: ","))?", preferredStyle: .alert)
+        //get first number
+        let numberArray = contact.phoneNumbers[0].value.stringValue
+        
+        let alertController = UIAlertController(title: "Call Confirmation", message: "Would you like to call \(contact.givenName) at number: \(contactModel.formatPhoneNumber(phoneNum: numberArray))?", preferredStyle: .alert)
         
         let actionYes = UIAlertAction(title: "Yes", style: .default) { (action:UIAlertAction) in
-            if let phoneCallURL = NSURL(string: "telprompt://\(contact.phoneNumbers)") {
+
+            if let phoneCallURL = NSURL(string: "telprompt://\(self.contactModel.stripNonNumbers(phoneNum: contact.phoneNumbers[0].value.stringValue))") {
                 let application = UIApplication.shared
                 if application.canOpenURL(phoneCallURL as URL) {
                     application.open(phoneCallURL as URL)

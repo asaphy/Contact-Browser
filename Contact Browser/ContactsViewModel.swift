@@ -26,7 +26,10 @@ class ContactsViewModel {
         
         do {
             try store.enumerateContacts(with: fetchRequest, usingBlock: { ( contact, stop) -> Void in
-                contacts.append(contact)
+                // Checking if phone number exists
+                if (contact.phoneNumbers != []) {
+                    contacts.append(contact)
+                }
             })
         }
         catch let error as NSError {
@@ -40,22 +43,56 @@ class ContactsViewModel {
         var contactDict: [String:[CNContact]] = [:]
 
         for contact in contacts{
-            let firstLetter = String(contact.givenName[contact.givenName.startIndex])
-            if contactDict[firstLetter] == nil{
-                contactDict[firstLetter] = [contact]
+            if contact.givenName != "" {
+                let firstLetter = String(contact.givenName[contact.givenName.startIndex])
+                if contactDict[firstLetter] == nil{
+                    contactDict[firstLetter] = [contact]
+                }
+                else{
+                    contactDict[firstLetter]!.append(contact)
+                }
             }
-            else{
-                contactDict[firstLetter]!.append(contact)
-            }
+
         }
+        
         return contactDict
     }
     
     //filters contacts
     func filterContentForSearchText(searchText: String, scope: String = "All") {
         filteredContacts = contacts.filter { contact in
-            return (contact.givenName.lowercased().hasPrefix(searchText.lowercased()))
+            var numberArray = [String]()
+            for number in contact.phoneNumbers {
+                let phoneNumber = number.value
+                numberArray.append(phoneNumber.stringValue)
+            }
+            let numberString = numberArray.joined(separator: ",")
+            return contact.givenName.lowercased().hasPrefix(searchText.lowercased()) || numberString.hasPrefix(searchText)
         }
+    }
+    
+    func formatPhoneNumber (phoneNum: String) -> String{
+        var num = phoneNum
+        if num.characters.count == 10 {
+            num.insert("(", at: num.startIndex)
+            num.insert(contentsOf: ") ".characters, at: num.characters.index(num.startIndex, offsetBy: 4))
+            num.insert(contentsOf: "-".characters, at: num.characters.index(num.startIndex, offsetBy: 9))
+        }
+        return num
+    }
+    
+    func stripNonNumbers(phoneNum: String) -> String{
+        //pattern says except digits and dot.
+        let pattern = "[^0-9]"
+        do {
+            let regex = try NSRegularExpression(pattern: pattern, options: NSRegularExpression.Options.caseInsensitive)
+            
+            //replace all not required characters with empty string ""
+            return regex.stringByReplacingMatches(in: phoneNum, options: NSRegularExpression.MatchingOptions.withTransparentBounds, range: NSMakeRange(0, phoneNum.characters.count), withTemplate: "")
+        } catch {
+            print("Cant convert")
+        }
+        return phoneNum
     }
 
 
