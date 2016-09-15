@@ -13,13 +13,16 @@ import ContactsUI
 class ContactsTableViewController: UITableViewController, UISearchResultsUpdating, UISearchBarDelegate {
     
     let contactModel = ContactsViewModel()
-    var contactDict: [String:[CNContact]] = [:]
-    var sortedKeys: [String] = []
-    var sortedValues: [CNContact] = []
-    var sortedDict: [String:[[CNContact]]] = [:]
-
 
     var searchController: UISearchController!
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        configureSearchController()
+        setTitle()
+        getContacts()
+    }
+    
     private func configureSearchController()
     {
         // Initialize and perform a minimum configuration to the search controller.
@@ -37,7 +40,7 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
     internal func updateSearchResults(for searchController: UISearchController) {
         contactModel.filterContentForSearchText(searchText: searchController.searchBar.text!)
         tableView.reloadData()
-
+        
     }
     
     private func setTitle(){
@@ -48,40 +51,11 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
         DispatchQueue.main.async(execute: { () -> Void in
             self.contactModel.contacts = self.contactModel.findContacts()
             DispatchQueue.main.async(execute: { () -> Void in
-                self.contactDict = self.contactModel.getIndexLetters(contacts: self.contactModel.contacts)
-                self.sortedKeys = Array(self.contactDict.keys).sorted()
-                self.sortedValues = self.contactModel.contacts.sorted(by: {
-                    if $0.givenName != $1.givenName {
-                        return $0.givenName < $1.givenName
-                    }
-                    else {
-                        //last names are the same, break ties by first name
-                        return $0.familyName < $1.familyName
-                    }
-                })
-                //TODO: map dictionary keys to values based on first letter
-                for contact in self.sortedValues{
-                    if contact.givenName != "" {
-                        let firstLetter = String(contact.givenName[contact.givenName.startIndex])
-                        if self.sortedDict[firstLetter] == nil{
-                            self.sortedDict[firstLetter] = [[contact]]
-                        }
-                        else{
-                            self.sortedDict[firstLetter]![0].append(contact)
-                        }
-                    }
-                    
-                }
+                self.contactModel.getIndexLetters(contacts: self.contactModel.contacts)
+                self.contactModel.sortContacts(contacts: self.contactModel.contacts)
                 self.tableView!.reloadData()
             })
         })
-    }
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        configureSearchController()
-        setTitle()
-        getContacts()
     }
 
     // MARK: - Table view data source
@@ -90,14 +64,14 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
         if searchController.isActive && searchController.searchBar.text != "" {
             return 1
         }
-        return sortedKeys.count
+        return self.contactModel.sortedKeys.count
     }
     
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         if searchController.isActive && searchController.searchBar.text != "" {
             return ""
         }
-        return sortedKeys[section]
+        return self.contactModel.sortedKeys[section]
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -105,8 +79,8 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
         if searchController.isActive && searchController.searchBar.text != "" {
             return contactModel.filteredContacts.count
         }
-        let sectionTitle = sortedKeys[section]
-        return contactDict[sectionTitle]!.count;
+        let sectionTitle = self.contactModel.sortedKeys[section]
+        return self.contactModel.sortedDict[sectionTitle]![0].count;
     }
     
     override func tableView(_ tableView: UITableView, sectionForSectionIndexTitle title: String, at index: Int)
@@ -118,7 +92,7 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
         if searchController.isActive && searchController.searchBar.text != "" {
             return []
         }
-        return sortedKeys
+        return self.contactModel.sortedKeys
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -128,8 +102,8 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
         if searchController.isActive && searchController.searchBar.text != "" {
             contact = contactModel.filteredContacts[indexPath.row]
         } else {
-            let sectionTitle = sortedKeys[indexPath.section]
-            let sectionContacts = sortedDict[sectionTitle]![0]
+            let sectionTitle = self.contactModel.sortedKeys[indexPath.section]
+            let sectionContacts = self.contactModel.sortedDict[sectionTitle]![0]
             contact = sectionContacts[indexPath.row]
         }
         
@@ -142,8 +116,8 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let sectionTitle = sortedKeys[indexPath.section]
-        let sectionContacts = sortedDict[sectionTitle]![0]
+        let sectionTitle = self.contactModel.sortedKeys[indexPath.section]
+        let sectionContacts = self.contactModel.sortedDict[sectionTitle]![0]
         let contact: CNContact
 
         if searchController.isActive && searchController.searchBar.text != "" {

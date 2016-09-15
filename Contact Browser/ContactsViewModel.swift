@@ -13,7 +13,10 @@ import ContactsUI
 class ContactsViewModel {
     var contacts = [CNContact]()
     var filteredContacts = [CNContact]()
-    
+    var sortedDict: [String:[[CNContact]]] = [:]
+    var sortedKeys: [String] = []
+    var contactDict: [String:[CNContact]] = [:]
+
         //returns all contacts in CNContact array
     func findContacts() -> [CNContact] {
         //init store
@@ -39,9 +42,8 @@ class ContactsViewModel {
     }
     
     //returns all contacts in CNContact array
-    func getIndexLetters(contacts: [CNContact]) -> [String:[CNContact]] {
-        var contactDict: [String:[CNContact]] = [:]
-
+    func getIndexLetters(contacts: [CNContact]){
+        
         for contact in contacts{
             if contact.givenName != "" {
                 let firstLetter = String(contact.givenName[contact.givenName.startIndex])
@@ -55,7 +57,7 @@ class ContactsViewModel {
 
         }
         
-        return contactDict
+        sortKeys(keysArray: contactDict.keys)
     }
     
     //filters contacts
@@ -102,6 +104,38 @@ class ContactsViewModel {
             print("Cant convert")
         }
         return phoneNum
+    }
+    
+    func sortContacts(contacts: [CNContact]){
+        var sortedContacts = contacts
+        sortedContacts = contacts.sorted(by: {
+            if $0.givenName != $1.givenName {
+                return $0.givenName < $1.givenName
+            }
+            else {
+                //last names are the same, break ties by first name
+                return $0.familyName < $1.familyName
+            }
+        })
+        sortedContactsToDict(contacts: sortedContacts)
+    }
+    
+    func sortedContactsToDict(contacts: [CNContact]){
+        for contact in contacts{
+            if contact.givenName != "" {
+                let firstLetter = String(contact.givenName[contact.givenName.startIndex])
+                if sortedDict[firstLetter] == nil{
+                    sortedDict[firstLetter] = [[contact]]
+                }
+                else{
+                    sortedDict[firstLetter]![0].append(contact)
+                }
+            }
+        }
+    }
+    
+    func sortKeys(keysArray: LazyMapCollection<Dictionary<String, [CNContact]>, String>){
+        sortedKeys = Array(keysArray).sorted()
     }
 
 
