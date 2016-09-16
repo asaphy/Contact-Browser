@@ -10,24 +10,13 @@ import Foundation
 import Contacts
 import ContactsUI
 
-class ContactsViewModel {
+struct ContactsViewModel {
     var contacts = [CNContact]()
     var filteredContacts = [CNContact]()
     var sortedDict: [String:[[CNContact]]] = [:]
     var sortedKeys: [String] = []
     var contactDict: [String:[CNContact]] = [:]
-    
-    
-    //    func getContacts(completion: ()->()){
-    //        DispatchQueue.main.async(execute: { () -> Void in
-    //            self.contacts = self.findContacts()
-    //            DispatchQueue.main.async(execute: { () -> Void in
-    //                self.getIndexLetters(contacts: self.contacts)
-    //                self.sortContacts(contacts: self.contacts)
-    //            })
-    //        })
-    //    }
-
+    var filterActive: Bool = false
     
     //returns all contacts in CNContact array
     func findContacts() -> [CNContact] {
@@ -36,16 +25,17 @@ class ContactsViewModel {
         //keys to fetch
         let keysToFetch = [CNContactFormatter.descriptorForRequiredKeys(for: .fullName),
                            CNContactPhoneNumbersKey] as [Any]
+        // FIXME: dont force cast
         let fetchRequest = CNContactFetchRequest(keysToFetch: keysToFetch as! [CNKeyDescriptor])
         var contacts = [CNContact]()
         
         do {
-            try store.enumerateContacts(with: fetchRequest, usingBlock: { ( contact, stop) -> Void in
+            try store.enumerateContacts(with: fetchRequest) { ( contact, stop) -> Void in
                 // Checking if phone number exists
                 if (contact.phoneNumbers != []) {
                     contacts.append(contact)
                 }
-            })
+            }
         }
         catch let error as NSError {
             print(error.localizedDescription)
@@ -54,7 +44,7 @@ class ContactsViewModel {
     }
     
     //returns all contacts in CNContact array
-    func getIndexLetters(contacts: [CNContact]){
+    mutating func getIndexLetters(contacts: [CNContact]){
         
         for contact in contacts{
             if contact.givenName != "" {
@@ -73,7 +63,7 @@ class ContactsViewModel {
     }
     
     //filters contacts
-    func filterContentForSearchText(searchText: String, scope: String = "All") {
+    mutating func filterContentForSearchText(searchText: String, scope: String = "All") {
         contacts = contacts.sorted(by: {
             if $0.givenName != $1.givenName {
                 return $0.givenName < $1.givenName
@@ -118,7 +108,7 @@ class ContactsViewModel {
         return phoneNum
     }
     
-    func sortContacts(contacts: [CNContact]){
+    mutating func sortContacts(contacts: [CNContact]){
         var sortedContacts = contacts
         sortedContacts = contacts.sorted(by: {
             if $0.givenName != $1.givenName {
@@ -132,7 +122,7 @@ class ContactsViewModel {
         sortedContactsToDict(contacts: sortedContacts)
     }
     
-    func sortedContactsToDict(contacts: [CNContact]){
+    mutating func sortedContactsToDict(contacts: [CNContact]){
         for contact in contacts{
             if contact.givenName != "" {
                 let firstLetter = String(contact.givenName[contact.givenName.startIndex])
@@ -146,7 +136,7 @@ class ContactsViewModel {
         }
     }
     
-    func sortKeys(keysArray: LazyMapCollection<Dictionary<String, [CNContact]>, String>){
+    mutating func sortKeys(keysArray: LazyMapCollection<Dictionary<String, [CNContact]>, String>){
         sortedKeys = Array(keysArray).sorted()
     }
     
@@ -154,13 +144,34 @@ class ContactsViewModel {
         if searchControllerIsActive && searchText != "" {
             return 1
         }
-        return self.sortedKeys.count
+        return sortedKeys.count
     }
     
     func getTitleForHeaderInSection(searchControllerIsActive: Bool, searchText: String, section: Int) -> String? {
         if searchControllerIsActive && searchText != "" {
             return ""
         }
-        return self.sortedKeys[section]
+        return sortedKeys[section]
     }
+    
+    func getNumRows (searchControllerIsActive: Bool, searchText: String, section: Int) -> Int {
+        //if searching and search text is not ""
+        if searchControllerIsActive && searchText != "" {
+            return filteredContacts.count
+        }
+        let sectionTitle = sortedKeys[section]
+        if let numRows = sortedDict[sectionTitle]?.first?.count {
+            return numRows
+        } else {
+            return 0
+        }
+    }
+    
+    func getSectionIndexTitles (searchControllerIsActive: Bool, searchText: String) -> [String]? {
+        if searchControllerIsActive && searchText != "" {
+            return []
+        }
+        return sortedKeys
+    }
+
 }

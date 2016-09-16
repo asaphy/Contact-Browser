@@ -12,7 +12,7 @@ import ContactsUI
 
 class ContactsTableViewController: UITableViewController, UISearchResultsUpdating, UISearchBarDelegate {
     
-    let contactModel = ContactsViewModel()
+    var contactModel = ContactsViewModel()
 
     var searchController: UISearchController!
     
@@ -34,50 +34,42 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
         searchController.searchBar.sizeToFit()
         
         // Place the search bar view to the tableview headerview.
-        self.tableView!.tableHeaderView = searchController.searchBar
+        tableView.tableHeaderView = searchController.searchBar
     }
     
-    internal func updateSearchResults(for searchController: UISearchController) {
+    func updateSearchResults(for searchController: UISearchController) {
         contactModel.filterContentForSearchText(searchText: searchController.searchBar.text!)
         tableView.reloadData()
         
     }
     
     private func setTitle(){
-        self.title = "Contacts Browser"
+        title = "Contacts Browser"
     }
     
-    //TODO: refactor to ContactsViewModel
     private func getContacts(){
-        DispatchQueue.main.async(execute: { () -> Void in
-            self.contactModel.contacts = self.contactModel.findContacts()
-            DispatchQueue.main.async(execute: { () -> Void in
-                self.contactModel.getIndexLetters(contacts: self.contactModel.contacts)
-                self.contactModel.sortContacts(contacts: self.contactModel.contacts)
-                self.tableView!.reloadData()
-            })
+        contactModel.contacts = contactModel.findContacts()
+        contactModel.getIndexLetters(contacts: contactModel.contacts)
+        contactModel.sortContacts(contacts: contactModel.contacts)
+        DispatchQueue.main.async(execute: {
+            self.tableView.reloadData()
         })
     }
 
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
-        return self.contactModel.getNumberOfSections(searchControllerIsActive: searchController.isActive, searchText: searchController.searchBar.text!)
+        return contactModel.getNumberOfSections(searchControllerIsActive: searchController.isActive, searchText: searchController.searchBar.text!)
     }
     
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        return self.contactModel.getTitleForHeaderInSection(searchControllerIsActive: searchController.isActive, searchText: searchController.searchBar.text!, section: section)
+        return contactModel.getTitleForHeaderInSection(searchControllerIsActive: searchController.isActive, searchText: searchController.searchBar.text!, section: section)
     }
     
     
     //TODO: Refactor tableView functions to ContactsViewModel
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        //if searching and search text is not ""
-        if searchController.isActive && searchController.searchBar.text != "" {
-            return contactModel.filteredContacts.count
-        }
-        let sectionTitle = self.contactModel.sortedKeys[section]
-        return self.contactModel.sortedDict[sectionTitle]![0].count;
+        return contactModel.getNumRows(searchControllerIsActive: searchController.isActive, searchText: searchController.searchBar.text!, section: section)
     }
     
     override func tableView(_ tableView: UITableView, sectionForSectionIndexTitle title: String, at index: Int)
@@ -86,10 +78,7 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
     }
     
     override func sectionIndexTitles(for tableView: UITableView) -> [String]? {
-        if searchController.isActive && searchController.searchBar.text != "" {
-            return []
-        }
-        return self.contactModel.sortedKeys
+        return contactModel.getSectionIndexTitles(searchControllerIsActive: searchController.isActive, searchText: searchController.searchBar.text!)
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -99,57 +88,62 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
         if searchController.isActive && searchController.searchBar.text != "" {
             contact = contactModel.filteredContacts[indexPath.row]
         } else {
-            let sectionTitle = self.contactModel.sortedKeys[indexPath.section]
-            let sectionContacts = self.contactModel.sortedDict[sectionTitle]![0]
+            let sectionTitle = contactModel.sortedKeys[indexPath.section]
+            guard let sectionContacts = contactModel.sortedDict[sectionTitle]?.first else {return cell}
             contact = sectionContacts[indexPath.row]
         }
         
         cell.textLabel!.text = "\(contact.givenName) \(contact.familyName)"
         //get first number
-        let numberArray = contact.phoneNumbers[0].value.stringValue
+        guard let numberArray = contact.phoneNumbers.first?.value.stringValue else {return cell}
         
         cell.detailTextLabel!.text = contactModel.formatPhoneNumber(phoneNum: numberArray)
         return cell
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let sectionTitle = self.contactModel.sortedKeys[indexPath.section]
-        let sectionContacts = self.contactModel.sortedDict[sectionTitle]![0]
-        let contact: CNContact
+        
+        let callAlert = makeCallAlert(indexPath: indexPath)
+        
+        if searchController.isActive && searchController.searchBar.text != "" {
+            searchController.present(callAlert, animated: true, completion:nil)
+        } else {
+            present(callAlert, animated: true, completion:nil)
+        }
+    }
+    
+    func makeCallAlert (indexPath: IndexPath) -> UIAlertController {
+        let sectionTitle = contactModel.sortedKeys[indexPath.section]
 
+        guard let sectionContacts = contactModel.sortedDict[sectionTitle]?.first else{return UIAlertController()}
+
+        let contact: CNContact
+        
         if searchController.isActive && searchController.searchBar.text != "" {
             contact = contactModel.filteredContacts[indexPath.row]
         } else {
             contact = sectionContacts[indexPath.row]
         }
-        //get first number
-        let numberArray = contact.phoneNumbers[0].value.stringValue
-        
-        let alertController = UIAlertController(title: "Call Confirmation", message: "Would you like to call \(contact.givenName) at number: \(contactModel.formatPhoneNumber(phoneNum: numberArray))?", preferredStyle: .alert)
-        
+        guard let numberString = contact.phoneNumbers.first?.value.stringValue else {return UIAlertController()}
+        let alertController = UIAlertController(title: "Call Confirmation", message: "Would you like to call \(contact.givenName) at number: \(contactModel.formatPhoneNumber(phoneNum: numberString))?", preferredStyle: .alert)
+    
         let actionYes = UIAlertAction(title: "Yes", style: .default) { (action:UIAlertAction) in
-
             if let phoneCallURL = NSURL(string: "telprompt://\(self.contactModel.stripNonNumbers(phoneNum: contact.phoneNumbers[0].value.stringValue))") {
                 let application = UIApplication.shared
                 if application.canOpenURL(phoneCallURL as URL) {
                     application.open(phoneCallURL as URL)
-                }
-                else{
-                    print("failed")
+                } else{
+                    print("phone call failed")
                 }
             }
         }
-        
+    
         let actionCancel = UIAlertAction(title: "Cancel", style: .cancel) { (action:UIAlertAction) in
         }
-        
+    
         alertController.addAction(actionYes)
         alertController.addAction(actionCancel)
-        if searchController.isActive && searchController.searchBar.text != "" {
-            searchController.present(alertController, animated: true, completion:nil)
-        } else {
-            self.present(alertController, animated: true, completion:nil)
-        }
+        return alertController
     }
 
 }
