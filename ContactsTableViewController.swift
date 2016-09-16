@@ -47,6 +47,7 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
         self.title = "Contacts Browser"
     }
     
+    //TODO: refactor to ContactsViewModel
     private func getContacts(){
         DispatchQueue.main.async(execute: { () -> Void in
             self.contactModel.contacts = self.contactModel.findContacts()
@@ -61,19 +62,15 @@ class ContactsTableViewController: UITableViewController, UISearchResultsUpdatin
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
-        if searchController.isActive && searchController.searchBar.text != "" {
-            return 1
-        }
-        return self.contactModel.sortedKeys.count
+        return self.contactModel.getNumberOfSections(searchControllerIsActive: searchController.isActive, searchText: searchController.searchBar.text!)
     }
     
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        if searchController.isActive && searchController.searchBar.text != "" {
-            return ""
-        }
-        return self.contactModel.sortedKeys[section]
+        return self.contactModel.getTitleForHeaderInSection(searchControllerIsActive: searchController.isActive, searchText: searchController.searchBar.text!, section: section)
     }
-
+    
+    
+    //TODO: Refactor tableView functions to ContactsViewModel
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         //if searching and search text is not ""
         if searchController.isActive && searchController.searchBar.text != "" {

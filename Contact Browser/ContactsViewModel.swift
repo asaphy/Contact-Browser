@@ -16,8 +16,20 @@ class ContactsViewModel {
     var sortedDict: [String:[[CNContact]]] = [:]
     var sortedKeys: [String] = []
     var contactDict: [String:[CNContact]] = [:]
+    
+    
+    //    func getContacts(completion: ()->()){
+    //        DispatchQueue.main.async(execute: { () -> Void in
+    //            self.contacts = self.findContacts()
+    //            DispatchQueue.main.async(execute: { () -> Void in
+    //                self.getIndexLetters(contacts: self.contacts)
+    //                self.sortContacts(contacts: self.contacts)
+    //            })
+    //        })
+    //    }
 
-        //returns all contacts in CNContact array
+    
+    //returns all contacts in CNContact array
     func findContacts() -> [CNContact] {
         //init store
         let store = CNContactStore()
@@ -137,7 +149,18 @@ class ContactsViewModel {
     func sortKeys(keysArray: LazyMapCollection<Dictionary<String, [CNContact]>, String>){
         sortedKeys = Array(keysArray).sorted()
     }
-
-
-
+    
+    func getNumberOfSections(searchControllerIsActive: Bool, searchText: String) -> Int {
+        if searchControllerIsActive && searchText != "" {
+            return 1
+        }
+        return self.sortedKeys.count
+    }
+    
+    func getTitleForHeaderInSection(searchControllerIsActive: Bool, searchText: String, section: Int) -> String? {
+        if searchControllerIsActive && searchText != "" {
+            return ""
+        }
+        return self.sortedKeys[section]
+    }
 }
